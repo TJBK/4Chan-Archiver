@@ -2,9 +2,10 @@ const axios = require('axios')
 const fs = require('fs')
 const path = require('path')
 const Bottleneck = require('bottleneck')
+const env = require('dotenv').config()
 
-const BOARD = '' // Replace with the board you want to scrape, e.g. 'b'
-const SEARCH_TERM = '' // Replace term to search
+const BOARD = process.env.board // Replace with the board you want to scrape, e.g. 'b'
+const SEARCH_TERM = process.env.searchTerm // Replace term to search
 const CHECK_INTERVAL = 15000 // Check for updates every 15 seconds
 const SEARCH_THREADS_INTERVAL = 60000 // Search for new threads every 1 minutes
 
@@ -21,13 +22,13 @@ const limiter = new Bottleneck({
 const downloadedImages = new Set()
 const watchedThreads = new Map()
 
-function logWithTimestamp (message) {
+function logWithTimestamp(message) {
   const timestamp = new Date().toISOString()
   console.log(`[${timestamp}] ${message}`)
 }
 
 // Search for threads on the board that contain the search term
-async function searchThreads (board, searchTerm) {
+async function searchThreads(board, searchTerm) {
   try {
     const response = await limiter.schedule(() => axios.get(`${BASE_URL}${board}/catalog.json`))
     if (response.status === 200) {
@@ -60,25 +61,34 @@ function generateHTML(posts) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thread</title>
+<title>Thread on /${BOARD}/</title>
 <style>
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f0e0d6;
+  font-family: 'Verdana', sans-serif;
+  background-color: #F5E9D8;
   color: #34363b;
   font-size: 14px;
   line-height: 1.6;
   margin: 20px;
 }
 
+.board-name {
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
 .post {
   border: 1px solid #ccc;
   margin-bottom: 25px;
   padding: 10px;
-  background-color: #f0e0d6;
+  background-color: #FAF0E6;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   display: inline-block;
   width: calc(100% - 20px);
+}
+
+.post.op {
+  border-color: #cc1105;
 }
 
 .post-header {
@@ -89,7 +99,7 @@ body {
 }
 
 .post img {
-  max-width: 100%;
+  max-width: 50%;
   display: block;
   margin-top: 8px;
   margin-bottom: 8px;
@@ -115,40 +125,52 @@ a:hover {
   margin-bottom: 5px;
 }
 
+.quote {
+  color: #789922;
+  display: block;
+  font-weight: bold;
+  margin-left: 2em;
+  text-indent: -2em;
+}
+
 </style>
 </head>
 <body>
+<h1 class="board-name">/${BOARD}/</h1>
 `;
 
-  posts.forEach((post) => {
+  posts.forEach((post, index) => {
     const postId = post.no;
     const subject = post.sub ? `<span class="subject">${post.sub}</span>` : '';
-    const comment = post.com ? post.com : '';
+    const comment = post.com ? post.com.replace(/(^|[\s\n])&gt;(.+)/g, '$1<span class="quote">&gt;$2</span>') : '';
     const datetime = new Date(post.time * 1000).toLocaleString();
-    const fileInfo = post.filename ? `File: <a href="${IMAGE_URL}${BOARD}/${post.tim}${post.ext}" target="_blank">${post.filename}${post.ext}</a> (${post.fsize} KB, ${post.w}x${post.h})` : '';
+    const fileInfo = post.filename ? `File: <a href="./${post.tim}${post.ext}" target="_blank">${post.filename}${post.ext}</a> (${post.fsize} KB, ${post.w}x${post.h})` : '';
+    const opClass = index === 0 ? 'op' : '';
 
     html += `
-<div class="post">
+  <div class="post ${opClass}" id="${postId}">
   <div class="post-header">
     <div>${subject} (No. ${postId})</div>
     <div>${datetime}</div>
   </div>
   <div class="file-info">${fileInfo}</div>
-  ${post.tim ? `<img src="${IMAGE_URL}${BOARD}/${post.tim}${post.ext}" alt="Image ${postId}">` : ''}
-  <div>${comment}</div>
-</div>
-`;
+  ${post.tim ? `<img src="./${post.tim}${post.ext}" alt="Image ${postId}">` : ''}
+  <div>${comment.replace(/&gt;&gt;(\d+)/g, '<a href="#$1">&gt;&gt;$1</a>')}</div>
+  </div>
+  `;
   });
 
   html += `
-</body>
-</html>
-`;
+  </body>
+  </html>
+  `;
 
   return html;
 }
 
-async function downloadThreadHTML (board, threadId, posts) {
+
+
+async function downloadThreadHTML(board, threadId, posts) {
   const threadFolder = `${board}_${threadId}`
   const threadHTMLPath = path.join(threadFolder, 'thread.html')
 
@@ -163,7 +185,7 @@ async function downloadThreadHTML (board, threadId, posts) {
   })
 }
 
-async function downloadThreadContent (board, threadId, posts) {
+async function downloadThreadContent(board, threadId, posts) {
   const threadFolder = `${board}_${threadId}`
   const threadContentPath = path.join(threadFolder, 'thread_content.json')
 
@@ -176,7 +198,7 @@ async function downloadThreadContent (board, threadId, posts) {
   })
 }
 
-async function downloadImages (board, threadId) {
+async function downloadImages(board, threadId) {
   try {
     const response = await limiter.schedule(() => axios.get(`${BASE_URL}${board}/thread/${threadId}.json`))
 
@@ -214,7 +236,7 @@ async function downloadImages (board, threadId) {
 }
 
 // Watch a thread for new posts
-async function watchThread (board, threadId) {
+async function watchThread(board, threadId) {
   if (!watchedThreads.has(threadId)) {
     watchedThreads.set(threadId, null) // Set initial value to null
     logWithTimestamp(`Now watching thread: ${threadId}`)
