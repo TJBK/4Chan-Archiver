@@ -1,5 +1,5 @@
 {
-  "name": "4Chan-Scraper",
+  "name": "4Chan-Archiver",
   "version": "0.0.1",
   "description": "A simple scraper for 4chan",
   "main": "index.js",
