@@ -1,4 +1,4 @@
-# Chan-Archiver
+# 4Chan-Archiver
 I got bored and made this. It's a mess but it will scrape 4chan for a thread with a certain title like "ylyl"
 
 You need to make a .env file
