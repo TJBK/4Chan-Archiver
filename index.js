@@ -331,5 +331,6 @@ async function watchThread(board, threadId) {
         watchThread(BOARD, threadId)
       }
     })
+    logWithTimestamp(`Found ${newThreads.length} threads containing "${SEARCH_TERM}".`)
   }, SEARCH_THREADS_INTERVAL)
 })()
