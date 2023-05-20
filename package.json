@@ -1,6 +1,6 @@
 {
   "name": "4Chan-Archiver",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A simple scraper for 4chan",
   "main": "index.js",
   "scripts": {
@@ -9,8 +9,10 @@
   "author": "TJBK",
   "license": "MIT",
   "dependencies": {
+    "async-sema": "^3.1.1",
     "axios": "^1.4.0",
-    "bottleneck": "^2.19.5",
-    "dotenv": "^16.0.3"
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.0.3",
+    "sqlite3": "^5.1.6"
   }
 }
